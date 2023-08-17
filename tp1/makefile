@@ -2,7 +2,7 @@
 #
 # Adicionei -Wextra e -g, alem de -Werror para ter certeza :)
 
-CFLAGS = -g -Wall -Wextra -Werror # flags de compilacao
+CFLAGS = -ansi -g -Wall -Wextra -Werror # flags de compilacao
 CC = gcc
 
 all: tp1.o racionais.o
