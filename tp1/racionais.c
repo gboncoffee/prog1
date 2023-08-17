@@ -85,12 +85,9 @@ void imprime_r(struct racional r)
 	r = simplifica_r(r);
 	if (!valido_r(r)) {
 		printf("INVALIDO");
-	} else if (!r.num) {
-		printf("0");
-	} else if (r.den == 1) {
+		/* Isso ja cobre o caso de x/x pois esta simplificado */
+	} else if (!r.num || r.den == 1) {
 		printf("%d", r.num);
-	} else if (r.num == r.den) {
-		printf("1");
 	} else {
 		if (r.num * r.den < 0)
 			printf("-");
