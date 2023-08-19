@@ -1,6 +1,6 @@
 # Makefile de exemplo (Manual do GNU Make)
 #
-# Adicionei -Wextra e -g, alem de -Werror para ter certeza :)
+# Adicionei -Wextra, -ansi e -g, alem de -Werror para ter certeza :)
 
 CFLAGS = -ansi -g -Wall -Wextra -Werror # flags de compilacao
 CC = gcc

@@ -4,24 +4,40 @@
 
 int main()
 {
+	int n, max, i;
+	struct racional r1, r2;
+
 	srand(0);
 
-	imprime_r(cria_r(6, 4)); /* 3/2 */
-	printf("\n");
-	imprime_r(cria_r(0, 2)); /* 0 */
-	printf("\n");
-	imprime_r(cria_r(2, 1)); /* 2 */
-	printf("\n");
-	imprime_r(cria_r(2, 2)); /* 1 */
-	printf("\n");
-	imprime_r(cria_r(-3, 2)); /* -3/2 */
-	printf("\n");
-	imprime_r(cria_r(3, -2)); /* -3/2 */
-	printf("\n");
-	imprime_r(cria_r(-3, -2)); /* 3/2 */
-	printf("\n");
-	imprime_r(cria_r(3, 0)); /* INVALIDO */
-	printf("\n");
+	scanf("%d", &n);
+	scanf("%d", &max);
+
+	for (i = 1; i <= n; i++) {
+		printf("%i: ", i);
+
+		r1 = sorteia_r(max);
+		r2 = sorteia_r(max);
+
+		imprime_r(r1);
+		printf(" ");
+		imprime_r(r2);
+		printf(" ");
+
+		/* Evita computar as contas caso haja invalidez. */
+		if (!valido_r(r1) || !valido_r(r2) || !r2.num) {
+			printf("NUMERO INVALIDO\n");
+			return 1;
+		}
+
+		imprime_r(soma_r(r1, r2));
+		printf(" ");
+		imprime_r(subtrai_r(r1, r2));
+		printf(" ");
+		imprime_r(multiplica_r(r1, r2));
+		printf(" ");
+		imprime_r(divide_r(r1, r2));
+		printf("\n");
+	}
 
 	return 0;
 }
