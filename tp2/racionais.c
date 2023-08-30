@@ -43,7 +43,7 @@ int numerador_r(struct racional r)
 	return r.num;
 }
 
-int numerador_r(struct racional r)
+int denominador_r(struct racional r)
 {
 	return r.den;
 }
@@ -106,12 +106,16 @@ int compara_r(struct racional r1, struct racional r2)
 	if (!(valido_r(r1) && valido_r(r2)))
 		return 0;
 
-	int mmc = mmc(r1.den, r2.den);
+	int m = mmc(r1.den, r2.den);
+	int d1 = r1.num * (m / r1.den);
+	int d2 = r2.num * (m / r2.den);
 
-	/* Isso eh particularmente ilegivel, mas retorna de acordo com a
-	   requisicao */
-	int ret = (r1 == r2) ? 0 : 1;
-	return (r1 < r2) ? -1 : ret;
+	int ret = 0;
+	if (d1 < d2)
+		ret = -1;
+	else if (d1 > d2)
+		ret = 1;
+	return ret;
 }
 
 /* As operacoes sao bem simples, e nao simplificam os numeros. Talvez elas
