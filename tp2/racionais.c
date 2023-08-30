@@ -38,6 +38,16 @@ struct racional cria_r(int num, int den)
 	return r;
 }
 
+int numerador_r(struct racional r)
+{
+	return r.num;
+}
+
+int numerador_r(struct racional r)
+{
+	return r.den;
+}
+
 /* Wrapper para a flag de validez. */
 int valido_r(struct racional r)
 {
@@ -89,6 +99,19 @@ void imprime_r(struct racional r)
 			printf("-");
 		printf("%d/%d", MODULO(r.num), MODULO(r.den));
 	}
+}
+
+int compara_r(struct racional r1, struct racional r2)
+{
+	if (!(valido_r(r1) && valido_r(r2)))
+		return 0;
+
+	int mmc = mmc(r1.den, r2.den);
+
+	/* Isso eh particularmente ilegivel, mas retorna de acordo com a
+	   requisicao */
+	int ret = (r1 == r2) ? 0 : 1;
+	return (r1 < r2) ? -1 : ret;
 }
 
 /* As operacoes sao bem simples, e nao simplificam os numeros. Talvez elas
