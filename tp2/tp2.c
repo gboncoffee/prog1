@@ -14,18 +14,24 @@
 	imprime_r(v[s - 1]);			\
     }
 
-int elimina_invalido(struct racional v[], int n)
+void elimina_invalido(struct racional v[], int *n)
 {
-    int i;
-    int pad = 0;
-    for (i = 0; i < n; i++) {
-	if (!valido_r(v[i]))
-	    pad++;
-	else
-	    v[i - pad] = v[i];
-    }
+    int i = 0;
+    while (i < *n) {
+	if (!valido_r(v[i])) {
+	    while ((*n) - 1 > i) {
+		(*n)--;
+		if (valido_r(v[*n])) {
+		    v[i] = v[*n];
+		    /* eu nao consegui tirar esse break daqui de maneira
+		     * eficiente */
+		    break;
+		}
+	    }
+	}
 
-    return n - pad;
+	i++;
+    }
 }
 
 int pos_menor(struct racional v[], int n, int i)
@@ -77,7 +83,7 @@ int main()
     IMPRIME_VEC_R(vec, size);
     printf("\n");
 
-    size = elimina_invalido(vec, size);
+    elimina_invalido(vec, &size);
 
     IMPRIME_VEC_R(vec, size);
     printf("\n");
