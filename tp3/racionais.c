@@ -38,31 +38,35 @@ void destroi_r(struct racional *r)
         free(r);
 }
 
-long int numerador_r(struct racional *r)
+int numerador_r(struct racional *r, long int *num)
 {
-    return (r == NULL) ? 0 : r->num;
+    if (r == NULL || num == NULL)
+        return 0;
+    *num = r->num;
+    return ((int) r->den) == 0 ? 0 : 1;
 }
 
-long int denominador_r(struct racional *r)
+int denominador_r(struct racional *r, long int *den)
 {
-    return (r == NULL) ? 0 : r->den;
+    if (r == NULL || den == NULL)
+        return 0;
+    *den = r->den;
+    return ((int) r->den) == 0 ? 0 : 1;
 }
 
 /* Wrapper para a flag de validez. */
 int valido_r(struct racional *r)
 {
-    return (r == NULL) ? 0 : (int) !r->den;
+    return (r == NULL) ? 0 : (int) r->den;
 }
 
 /* Simplifica um racional dividindo ambos os termos pelo mdc deles. */
 int simplifica_r(struct racional *r)
 {
-    if (r == NULL)
+    if (r == NULL || !valido_r(r))
         return 0;
-    /* Caso mdc seja 0 (ocasiao em que ambos os termos de r sao), usa 1 para
-     * nao dar problema em runtime */
+
     int m = mdc(r->num, r->den);
-    m = !m ? 1 : m;
     r->num /= m;
     r->den /= m;
     /* Essa condicao resolve tanto os casos de (-x/-y) e (x/-y) */
@@ -71,8 +75,7 @@ int simplifica_r(struct racional *r)
         r->den *= (-1);
     }
 
-    /* Garante que o retorno verdadeiro é exatamente 1 */
-    return (r->den ? 1 : 0);
+    return 1;
 }
 
 /* Veja as regras de impressao no header. */

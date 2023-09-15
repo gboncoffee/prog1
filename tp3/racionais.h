@@ -3,8 +3,8 @@
 
 /* 
  * Tipos Abstratos de Dados - TAD's
- * Arquivo de header para TAD racional.
- * Feito em 17/08/2023 para a disciplina prog1.
+ * Arquivo de header para TAD racional - TP3
+ * Feito em 17/08/2023 para a disciplina prog1
 */
 
 /*********** NAO ALTERE ESTE ARQUIVO *********************/
@@ -16,17 +16,20 @@ struct racional {
 
 /* Cria um numero racional simplificado com base nas informacoes
  * dos parametros e retorna um ponteiro que aponta para ele.
- * Retorna NULL se nao conseguiu alocar a memoria. */
+ * A memória para o número racional deve ser alocada dinamicamente
+ * por esta função. Retorna NULL se nao conseguiu alocar a memoria. */
 struct racional *cria_r (long int numerador, long int denominador);
 
-/* Libera o espaco alocado para o racional */
+/* Libera a memoria alocada para o racional apontado por r */
 void destroi_r (struct racional *r);
 
-/* Retorna o numerador de um racional ou zero se r for nulo */
-long int numerador_r (struct racional *r);
+/* devolve em "num" o numerador de um racional; retorna 1 em sucesso
+ * e 0 se o racional for inválido ou se um ponteiro for nulo */
+int numerador_r (struct racional *r, long int *num);
 
-/* Retorna o denominador de um racional ou zero se r for nulo */
-long int denominador_r (struct racional *r);
+/* devolve em "den" o denominador de um racional; retorna 1 em sucesso
+ * e 0 se o racional for inválido ou se um ponteiro for nulo */
+int denominador_r (struct racional *r, long int *den);
 
 /* Retorna 1 se o racional r eh valido ou 0 se for inválido
  * Um racional eh invalido se o denominador for zero ou
@@ -71,11 +74,10 @@ int subtrai_r (struct racional *r1, struct racional *r2, struct racional *r3);
 
 /* Coloca em *r3 o produto simplificado dos racionais *r1 e *r2.
  * Retorna 1 em sucesso e 0 se r1 ou r2 for nulo ou inválido. */
-int multiplica_r (struct racional *r1, struct racional *r, struct racional *r32);
+int multiplica_r (struct racional *r1, struct racional *r2, struct racional *r3);
 
 /* Coloca em *r3 a divisão simplificada do racional *r1 por *r2.
  * Retorna 1 em sucesso e 0 se r1 ou r2 for nulo ou inválido. */
 int divide_r (struct racional *r1, struct racional *r2, struct racional *r3);
 
 #endif
-
