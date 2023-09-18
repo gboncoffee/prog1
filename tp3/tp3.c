@@ -96,7 +96,7 @@ struct racional *soma_vec_r(struct racional **v, int n, int i)
     return prox;
 }
 
-int main ()
+int main()
 {
     /* vetor de ponteiros para racionais */
     struct racional **v;  /* equivalente a struct racional *v[] */
@@ -121,6 +121,7 @@ int main ()
     soma = soma_vec_r(v, n, 0);
     printf("a soma de todos os elementos eh ");
     imprime_r(soma);
+    destroi_r(soma);
     printf("\n");
 
     for (i = 0; i < n; i++)
