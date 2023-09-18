@@ -2,14 +2,18 @@
 #include <stdio.h>
 #include "racionais.h"
 
-void inicia_vetor(struct racional **v, int n)
+int inicia_vetor(struct racional **v, int n)
 {
     int i, den, num;
     for (i = 0; i < n; i++) {
         scanf("%d", &num);
         scanf("%d", &den);
         v[i] = cria_r(num, den);
+        if (v[i] == NULL)
+            return 1;
     }
+
+    return 0;
 }
 
 void imprime_vetor(struct racional **v, int n)
@@ -107,8 +111,12 @@ int main()
     scanf("%d", &n);
 
     v = (struct racional **) malloc(sizeof(struct racional *) * n);
+    if (v == NULL)
+        return 1;
 
-    inicia_vetor(v, n);
+    if (inicia_vetor(v, n))
+        return 1;
+
     imprime_vetor(v, n);
     printf("\n");
     elimina_invalido(v, &n);
