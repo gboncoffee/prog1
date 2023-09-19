@@ -54,7 +54,6 @@ int denominador_r(struct racional *r, long int *den)
     return ((int) r->den) == 0 ? 0 : 1;
 }
 
-/* Wrapper para a flag de validez. */
 int valido_r(struct racional *r)
 {
     return (r == NULL) ? 0 : (int) r->den;
