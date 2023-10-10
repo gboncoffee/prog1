@@ -65,15 +65,10 @@ struct lef_t *destroi_lef(struct lef_t *l)
 
 int insere_nodo_lefs(struct nodo_lef_t *nodo, struct evento_t *e)
 {
-    struct nodo_lef_t *novo;
-    if (nodo->prox && ((nodo->prox)->evento)->tempo >= e->tempo)
+    if (nodo->prox && ((nodo->prox)->evento)->tempo <= e->tempo)
         return insere_nodo_lefs(nodo->prox, e);
 
-    if (!(novo = cria_nodo(e, nodo->prox)))
-        return 0;
-
-    nodo->prox = novo;
-    return 1;
+    return (!(nodo->prox = cria_nodo(e, nodo->prox)));
 }
 
 int insere_lef(struct lef_t *l, struct evento_t *e)
@@ -92,11 +87,13 @@ int insere_lef(struct lef_t *l, struct evento_t *e)
 struct evento_t *retira_lef(struct lef_t *l)
 {
     struct evento_t *e;
+    struct nodo_lef_t *aux;
     if (!(l && l->primeiro))
         return NULL;
     e = (l->primeiro)->evento;
+    aux = (l->primeiro)->prox;
     free(l->primeiro);
-    l->primeiro = (l->primeiro)->prox;
+    l->primeiro = aux;
 
     return e;
 }
@@ -106,19 +103,22 @@ int vazia_lef(struct lef_t *l)
     return (!(l && l->primeiro));
 }
 
-void imprime_nodos(struct nodo_lef_t *nodo)
+int imprime_nodos(struct nodo_lef_t *nodo, int n)
 {
     struct evento_t *e;
     if (!(nodo && nodo->evento))
-        return;
+        return n;
     e = nodo->evento;
 
-    printf("%d %d %d %d\n", e->tempo, e->tipo, e->dado1, e->dado2);
-    imprime_nodos(nodo->prox);
+    printf("  tempo %d tipo %d d1 %d d2 %d\n", e->tempo, e->tipo, e->dado1, e->dado2);
+    return imprime_nodos(nodo->prox, n + 1);
 }
 
 void imprime_lef(struct lef_t *l)
 {
+    int n = 0;
+    printf("LEF:\n");
     if (l)
-        imprime_nodos(l->primeiro);
+        n = imprime_nodos(l->primeiro, 0);
+    printf("  Total %d eventos\n", n);
 }
