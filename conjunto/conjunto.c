@@ -113,7 +113,7 @@ int insere_cjt(struct conjunto *c, int elemento)
     if (BUSCA(c, elemento, &pos))
         return 1;
 
-    insere_pos(c, elemento, pos, c->card);
+    insere_pos(c, elemento, pos, c->card - 1);
     c->card++;
 
     return 1;
