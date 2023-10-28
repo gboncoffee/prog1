@@ -3,10 +3,11 @@
 #include <assert.h>
 #include "conjunto.h"
 #include "fila.h"
+#include "lef.h"
 
-/* a configuracao da simulacao so eh realmente usada na main, todas as outras
- * funcoes recebem configuracoes como argumento. de qualquer maneira, eh mais
- * simples vir aqui em cima e alterar */
+/* todas as funcoes que retornam int para indicar falha retornam 1 em sucesso e
+ * 0 em falha */
+
 #define FIM_DO_MUNDO 525600
 #define N_HABILIDADES 10
 #define N_HEROIS (N_HABILIDADES * 5)
@@ -18,11 +19,24 @@
 #define MAX_VELOCIDADE 5000
 #define MIN_LOTACAO 3
 #define MAX_LOTACAO 10
+#define MAX_TEMPO_CHEGADA 4320
 
 /* usados como valores de inicializacao e etc */
 #define BASE_INVALIDA (-1)
 #define HEROI_INVALIDO (-1)
 #define HABILIDADE_INVALIDA (-1)
+
+/* para manter os eventos como um int eu nao uso um enum */
+#define EV_INVALIDO (-1)
+#define EV_CHEGA 0
+#define EV_ESPERA 1
+#define EV_DESISTE 2
+#define EV_AVISA 3
+#define EV_ENTRA 4
+#define EV_SAI 5
+#define EV_VIAJA 6
+#define EV_MISSAO 7
+#define EV_FIM_DO_MUNDO 8
 
 #define ALEAT(a, b) ((rand() % ((b) + 1)) + (a))
 
@@ -51,27 +65,26 @@ struct Missao {
     struct Coordenada local;
 };
 
-void inicializa_herois(struct Heroi herois[],
-                       int n,
-                       int n_hab,
-                       int min_paciencia,
-                       int max_paciencia,
-                       int min_velocidade,
-                       int max_velocidade)
+int inicializa_herois(struct Heroi herois[])
 {
     int i, j, max_hab_heroi;
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < N_HEROIS; i++) {
         herois[i].base_id = BASE_INVALIDA;
         herois[i].experiencia = 0;
-        herois[i].paciencia = ALEAT(min_paciencia, max_paciencia);
-        herois[i].velocidade = ALEAT(min_velocidade, max_velocidade);
-        max_hab_heroi = ALEAT(1, n_hab);
-        herois[i].habilidades = cria_cjt(max_hab_heroi);
+        herois[i].paciencia = ALEAT(MIN_PACIENCIA, MAX_PACIENCIA);
+        herois[i].velocidade = ALEAT(MIN_VELOCIDADE, MAX_VELOCIDADE);
+        max_hab_heroi = ALEAT(1, N_HABILIDADES);
+        if (!(herois[i].habilidades = cria_cjt(max_hab_heroi)))
+            return 0;
         for (j = 0; j < max_hab_heroi; j++)
-            insere_cjt(herois[i].habilidades, ALEAT(0, n_hab));
+            insere_cjt(herois[i].habilidades, ALEAT(0, N_HABILIDADES));
     }
+
+    return 1;
 }
 
+/* mais interessante passar o numero de herois para o caso de querer usar essa
+ * funcao para destruir so algumas estruturas e etc */
 void destroi_herois(struct Heroi herois[], int n)
 {
     int i;
@@ -79,95 +92,125 @@ void destroi_herois(struct Heroi herois[], int n)
         destroi_cjt(herois[i].habilidades);
 }
 
-void inicializa_bases(struct Base bases[],
-                      int n,
-                      int maxx,
-                      int maxy,
-                      int min_lotacao,
-                      int max_lotacao)
+int inicializa_bases(struct Base bases[], int maxx, int maxy)
 {
     int i;
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < N_BASES; i++) {
         bases[i].local = (struct Coordenada) {
             ALEAT(0, maxx), ALEAT(0, maxy)
         };
-        bases[i].lotacao = ALEAT(min_lotacao, max_lotacao);
+        bases[i].lotacao = ALEAT(MIN_LOTACAO, MAX_LOTACAO);
         bases[i].herois = cria_cjt(bases[i].lotacao);
         bases[i].espera = fila_cria();
+        if (!(bases[i].herois && bases[i].espera))
+            return 0;
     }
+
+    return 1;
 }
 
+/* passa o numero pelo mesmo motivo de destroi_herois */
 void destroi_bases(struct Base bases[], int n)
 {
     int i;
     for (i = 0; i < n; i++) {
-        destroi_cjt(bases[i].herois);
-        fila_destroi(&bases[i].espera);
+        if (bases[i].herois != NULL)
+            destroi_cjt(bases[i].herois);
+        if (bases[i].espera != NULL)
+            fila_destroi(&bases[i].espera);
     }
 }
 
-void inicializa_missoes(struct Missao missoes[],
-                        int n,
-                        int n_hab,
-                        int maxx,
-                        int maxy)
+int inicializa_missoes(struct Missao missoes[], int maxx, int maxy)
 {
     int i, j, max_hab_missao;
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < N_MISSOES; i++) {
         missoes[i].local.x = ALEAT(0, maxx);
         missoes[i].local.y = ALEAT(0, maxy);
-        max_hab_missao = ALEAT(1, n_hab);
-        missoes[i].habilidades = cria_cjt(max_hab_missao);
+        max_hab_missao = ALEAT(1, N_HABILIDADES);
+        if (!(missoes[i].habilidades = cria_cjt(max_hab_missao)))
+            return 0;
         for (j = 0; j < max_hab_missao; j++)
-            insere_cjt(missoes[i].habilidades, ALEAT(0, n_hab));
+            insere_cjt(missoes[i].habilidades, ALEAT(0, N_HABILIDADES));
     }
+
+    return 1;
 }
 
+/* passa o numero pelo mesmo motivo de destroi_herois e bases */
 void destroi_missoes(struct Missao missoes[], int n)
 {
     int i;
-    for (i = 0; i < n; i++)
-        destroi_cjt(missoes[i].habilidades);
+    for (i = 0; i < n; i++) {
+        if (missoes[i].habilidades != NULL)
+            destroi_cjt(missoes[i].habilidades);
+    }
 }
 
 struct Mundo {
     struct Base bases[N_BASES];
     struct Heroi herois[N_HEROIS];
     struct Missao missoes[N_MISSOES];
+    struct lef_t *eventos;
     struct Coordenada tamanho;
 };
+
+int cria_eventos_iniciais(struct lef_t *eventos)
+{
+    int i;
+    struct evento_t *e;
+    for (i = 0; i < N_HEROIS; i++) {
+        if (!(e = cria_evento(ALEAT(0, MAX_TEMPO_CHEGADA),
+                              EV_CHEGA,
+                              i,
+                              ALEAT(0, N_BASES))))
+            return 0;
+        insere_lef(eventos, e);
+    }
+
+    for (i = 0; i < N_MISSOES; i++) {
+        if (!(e = cria_evento(ALEAT(0, FIM_DO_MUNDO), EV_MISSAO, i, 0)))
+            return 0;
+        insere_lef(eventos, e);
+    }
+
+    return 1;
+}
 
 static struct Mundo mundo;
 
 int main()
 {
+    struct evento_t *e;
     mundo.tamanho.x = 20000;
     mundo.tamanho.y = 20000;
 
     srand(0);
 
-    inicializa_missoes(mundo.missoes,
-                       N_MISSOES,
-                       N_HABILIDADES,
-                       mundo.tamanho.x,
-                       mundo.tamanho.y);
-    inicializa_herois(mundo.herois,
-                      N_HEROIS,
-                      N_HABILIDADES,
-                      MIN_PACIENCIA,
-                      MAX_PACIENCIA,
-                      MIN_VELOCIDADE,
-                      MAX_VELOCIDADE);
-    inicializa_bases(mundo.bases,
-                     N_BASES,
-                     mundo.tamanho.x,
-                     mundo.tamanho.y,
-                     MIN_LOTACAO,
-                     MAX_LOTACAO);
+    if (!inicializa_missoes(mundo.missoes, mundo.tamanho.x, mundo.tamanho.y))
+        return 1;
+
+    if (!inicializa_herois(mundo.herois))
+        return 1;
+
+    if (!inicializa_bases(mundo.bases, mundo.tamanho.x, mundo.tamanho.y))
+        return 1;
+
+    if (!(mundo.eventos = cria_lef()))
+        return 1;
+
+    if (!cria_eventos_iniciais(mundo.eventos))
+        return 1;
+
+    imprime_lef(mundo.eventos);
 
     destroi_missoes(mundo.missoes, N_MISSOES);
     destroi_herois(mundo.herois, N_HEROIS);
     destroi_bases(mundo.bases, N_BASES);
+
+    while ((e = retira_lef(mundo.eventos)))
+        free(e);
+    destroi_lef(mundo.eventos);
 
     return 0;
 }
