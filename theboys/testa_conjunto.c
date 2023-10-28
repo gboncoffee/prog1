@@ -23,6 +23,7 @@ int main (void) {
             printf("ERRO: criou conjunto nao vazio\n");
             return 1;
     }
+    imprime_cjt (a);
     printf("OK: conjunto vazio\n");
 
     /* Teste de insercao de elementos no conjunto */
@@ -171,7 +172,7 @@ int main (void) {
     }
 
     /* Teste do iterador */
-    printf ("---> Teste 14\n");
+    printf ("---> Teste 13\n");
     inicia_iterador_cjt (b);
     while (incrementa_iterador_cjt (b, &ex) != 0)
         printf ("%d ", ex);
@@ -179,7 +180,7 @@ int main (void) {
     printf("Teste do iterador, tem que ter impresso todos numeros de 1 a 20\n");
 
     /* Teste do retira elemento */
-    printf ("---> Teste 15\n");
+    printf ("---> Teste 14\n");
     while (! vazio_cjt (b)){
         ex= retira_um_elemento_cjt (b);
         printf("%d ", ex);

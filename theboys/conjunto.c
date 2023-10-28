@@ -341,13 +341,10 @@ struct conjunto *cria_subcjt_cjt(struct conjunto *c, int n)
 void imprime_cjt(struct conjunto *c)
 {
     int i;
-    if (c->card == 0) {
-        printf("conjunto vazio\n");
-        return;
-    }
-    for (i = 0; i < c->card - 1; i++)
-        printf("%d ", c->v[i]);
-    printf("%d\n", c->v[c->card - 1]);
+    printf("[");
+    for (i = 0; i < c->card; i++)
+        printf(" %d", c->v[i]);
+    printf(" ]\n");
 }
 
 void inicia_iterador_cjt(struct conjunto *c)

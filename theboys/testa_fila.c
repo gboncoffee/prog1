@@ -39,6 +39,7 @@ void teste_enqueue (struct fila* f, int limite)
             return;
         }
     }
+    fila_imprime (f);
 }
 
 void teste_dequeue (struct fila* f)
@@ -51,6 +52,7 @@ void teste_dequeue (struct fila* f)
         if (dequeue (f, &dado))
             printf ("\tDesenfileirando %d\n", dado);
     }
+    fila_imprime (f);
 }
 
 int main (void)

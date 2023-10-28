@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "fila.h"
 
 struct nodo *cria_nodo_fila(int dado, struct nodo *prox)
@@ -83,4 +84,22 @@ int fila_tamanho(struct fila *fila)
 int fila_vazia(struct fila *fila)
 {
     return fila->tamanho ? 0 : 1;
+}
+
+void imprime_nodo_fila(struct nodo *n)
+{
+    if (n == NULL) {
+        printf(" ]");
+        return;
+    }
+
+    printf(" %d", n->chave);
+    imprime_nodo_fila(n->prox);
+    return;
+}
+
+void fila_imprime(struct fila *fila)
+{
+    printf("[");
+    imprime_nodo_fila(fila->ini);
 }

@@ -104,7 +104,12 @@ struct conjunto *cria_subcjt_cjt (struct conjunto *c, int n);
  * mesmo que a estrutura interna nao garanta isso.
  * Na impressao os elementos sao separados por um unico espaco
  * em branco entre os elementos, sendo que apos o ultimo nao
- * deve haver espacos em branco. Ao final imprime um \n.
+ * deve haver espacos em branco.
+ * A impressao deve ser assim para cada elemento e_i:
+ * [ e_1 e_2 ... e_n ]
+ * Se o conjunto for vazio imprimir assim:
+ * [ ]
+ * Ao final imprime um \n.
  */
 void imprime_cjt (struct conjunto *c);
 
@@ -123,8 +128,9 @@ void inicia_iterador_cjt (struct conjunto *c);
 
 /*
  * Devolve no parametro ret_iterador o elemento apontado e incrementa o iterador.
- * A funcao retorna 0 caso o iterador ultrapasse o ultimo elemento, ou retorna
- * 1 caso o iterador aponte para um elemento valido (dentro do conjunto).
+ * A funcao retorna 0 caso: (1) o iterador ultrapasse o ultimo elemento ou
+ * (2) o conjunto eh vazio. A funcao retorna 1 caso o iterador aponte para um 
+ * elemento valido (dentro do conjunto).
  */
 int incrementa_iterador_cjt (struct conjunto *c, int *ret_iterador);
 

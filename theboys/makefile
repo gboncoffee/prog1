@@ -8,6 +8,8 @@ CC = gcc
 # arquivos-objeto
 	objects = theboys.o conjunto.o  lef.o fila.o 
      
+all: theboys testa_conjunto testa_fila testa_lef
+
 theboys: theboys.o conjunto.o  lef.o fila.o
 	$(CC) -o theboys theboys.o conjunto.o  lef.o fila.o $(LDFLAGS)
 
