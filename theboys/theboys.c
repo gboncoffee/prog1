@@ -65,6 +65,14 @@ struct Missao {
     struct Coordenada local;
 };
 
+struct Mundo {
+    struct Base bases[N_BASES];
+    struct Heroi herois[N_HEROIS];
+    struct Missao missoes[N_MISSOES];
+    struct lef_t *eventos;
+    struct Coordenada tamanho;
+};
+
 int inicializa_herois(struct Heroi herois[])
 {
     int i, j, max_hab_heroi;
@@ -131,7 +139,7 @@ int inicializa_missoes(struct Missao missoes[], int maxx, int maxy)
         if (!(missoes[i].habilidades = cria_cjt(max_hab_missao)))
             return 0;
         for (j = 0; j < max_hab_missao; j++)
-            insere_cjt(missoes[i].habilidades, ALEAT(0, N_HABILIDADES));
+            insere_cjt(missoes[i].habilidades, ALEAT(0, N_HABILIDADES - 1));
     }
 
     return 1;
@@ -147,14 +155,6 @@ void destroi_missoes(struct Missao missoes[], int n)
     }
 }
 
-struct Mundo {
-    struct Base bases[N_BASES];
-    struct Heroi herois[N_HEROIS];
-    struct Missao missoes[N_MISSOES];
-    struct lef_t *eventos;
-    struct Coordenada tamanho;
-};
-
 int cria_eventos_iniciais(struct lef_t *eventos)
 {
     int i;
@@ -163,7 +163,7 @@ int cria_eventos_iniciais(struct lef_t *eventos)
         if (!(e = cria_evento(ALEAT(0, MAX_TEMPO_CHEGADA),
                               EV_CHEGA,
                               i,
-                              ALEAT(0, N_BASES))))
+                              ALEAT(0, N_BASES - 1))))
             return 0;
         insere_lef(eventos, e);
     }
@@ -174,7 +174,89 @@ int cria_eventos_iniciais(struct lef_t *eventos)
         insere_lef(eventos, e);
     }
 
+    if (!(e = cria_evento(FIM_DO_MUNDO, EV_FIM_DO_MUNDO, 0, 0)))
+        return 0;
+    insere_lef(eventos, e);
+
     return 1;
+}
+
+/* EV_CHEGA 0
+ * EV_ESPERA 1
+ * EV_DESISTE 2
+ * EV_AVISA 3
+ * EV_ENTRA 4
+ * EV_SAI 5
+ * EV_VIAJA 6
+ * EV_MISSAO 7 */
+int loop_de_eventos(struct Mundo *mundo)
+{
+    struct evento_t *e;
+    while ((e = retira_lef(mundo->eventos))) {
+        switch (e->tipo) {
+        case EV_FIM_DO_MUNDO:
+            return 1;
+            break;
+        case EV_CHEGA:
+            printf("%6d: CHEGA  HEROI %2d BASE %d (%d/%d) <todo>\n",
+                   e->tempo,
+                   e->dado1,
+                   e->dado2,
+                   cardinalidade_cjt(mundo->bases[e->dado2].herois),
+                   mundo->bases[e->dado2].lotacao);
+            break;
+        case EV_ESPERA:
+            printf("%6d: ESPERA HEROI %2d BASE %d (%2d)\n",
+                   e->tempo,
+                   e->dado1,
+                   e->dado2,
+                   fila_tamanho(mundo->bases[e->dado2].espera));
+            break;
+        case EV_DESISTE:
+            printf("%6d: DESIST HEROI %2d BASE %d (%2d)\n",
+                   e->tempo,
+                   e->dado1,
+                   e->dado2,
+                   fila_tamanho(mundo->bases[e->dado2].espera));
+            break;
+        case EV_AVISA:
+            printf("%6d: AVISA  PORTEIRO BASE %d (%2d/%2d) FILA ",
+                   e->tempo,
+                   e->dado1,
+                   cardinalidade_cjt(mundo->bases[e->dado1].herois),
+                   mundo->bases[e->dado1].lotacao);
+            fila_imprime(mundo->bases[e->dado1].espera);
+            break;
+        case EV_ENTRA:
+            printf("%6d: ENTRA  HEROI %2d BASE %d (%2d/%2d) SAI <todo>\n",
+                   e->tempo,
+                   e->dado1,
+                   e->dado2,
+                   cardinalidade_cjt(mundo->bases[e->dado2].herois),
+                   mundo->bases[e->dado2].lotacao);
+            break;
+        case EV_SAI:
+            printf("%6d: SAI    HEROI %2d BASE %d (%2d/%2d)\n",
+                   e->tempo,
+                   e->dado1,
+                   e->dado2,
+                   cardinalidade_cjt(mundo->bases[e->dado1].herois),
+                   mundo->bases[e->dado2].lotacao);
+            break;
+        case EV_VIAJA:
+            printf("%6d: VIAJA  HEROI %2d BASE %2d BASE %2d DIST <todo> VEL %d CHEGA <todo>\n",
+                   e->tempo,
+                   e->dado1,
+                   mundo->herois[e->dado1].base_id,
+                   e->dado2,
+                   mundo->herois[e->dado1].velocidade);
+            break;
+        case EV_MISSAO:
+            printf("%6d: MISSAO %d <todo>\n", e->tempo, e->dado1);
+        }
+    }
+
+    return 0;
 }
 
 static struct Mundo mundo;
@@ -187,22 +269,35 @@ int main()
 
     srand(0);
 
-    if (!inicializa_missoes(mundo.missoes, mundo.tamanho.x, mundo.tamanho.y))
+    if (!inicializa_missoes(mundo.missoes, mundo.tamanho.x, mundo.tamanho.y)) {
+        fprintf(stderr, "Falha inicializando missoes.\n");
         return 1;
+    }
 
-    if (!inicializa_herois(mundo.herois))
+    if (!inicializa_herois(mundo.herois)) {
+        fprintf(stderr, "Falha inicializando herois.\n");
         return 1;
+    }
 
-    if (!inicializa_bases(mundo.bases, mundo.tamanho.x, mundo.tamanho.y))
+    if (!inicializa_bases(mundo.bases, mundo.tamanho.x, mundo.tamanho.y)) {
+        fprintf(stderr, "Falha inicializando bases.\n");
         return 1;
+    }
 
-    if (!(mundo.eventos = cria_lef()))
+    if (!(mundo.eventos = cria_lef())) {
+        fprintf(stderr, "Falha ao criar lef para eventos.\n");
         return 1;
+    }
 
-    if (!cria_eventos_iniciais(mundo.eventos))
+    if (!cria_eventos_iniciais(mundo.eventos)) {
+        fprintf(stderr, "Falha ao criar eventos iniciais.\n");
         return 1;
+    }
 
-    imprime_lef(mundo.eventos);
+    if (!loop_de_eventos(&mundo)) {
+        fprintf(stderr, "Eventos acabaram antes do fim do mundo.\n");
+        return 1;
+    }
 
     destroi_missoes(mundo.missoes, N_MISSOES);
     destroi_herois(mundo.herois, N_HEROIS);
