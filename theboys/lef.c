@@ -22,6 +22,7 @@ struct evento_t *destroi_evento(struct evento_t *e)
         free(e);
     return NULL;
 }
+
 struct lef_t *cria_lef()
 {
     struct lef_t *nova;
@@ -77,6 +78,11 @@ int insere_lef(struct lef_t *l, struct evento_t *e)
 
     if (!l->primeiro) {
         l->primeiro = cria_nodo_lef(e, NULL);
+        return 1;
+    }
+
+    if (l->primeiro->evento->tempo > e->tempo) {
+        l->primeiro = cria_nodo_lef(e, l->primeiro);
         return 1;
     }
 
