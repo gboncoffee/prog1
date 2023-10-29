@@ -73,6 +73,130 @@ struct Mundo {
     struct Coordenada tamanho;
 };
 
+/* eventos */
+
+#define NOVO_EVENTO(mundo, tipo, tempo, dado1, dado2) {\
+        struct evento_t *n = cria_evento((tempo), (tipo), (dado1), (dado2));\
+        insere_lef((mundo)->eventos, n);\
+    }
+
+int chega(struct Mundo *mundo, int tempo, int heroi, int base)
+{
+    struct Base *b = &mundo->bases[base];
+    struct Heroi *h = &mundo->herois[heroi];
+
+    h->base_id = base;
+
+    if ((vazio_cjt(b->herois) && fila_vazia(b->espera)) ||
+        (h->paciencia > (10 * fila_tamanho(b->espera))))
+    {
+        NOVO_EVENTO(mundo, EV_ESPERA, tempo, heroi, base);
+        return 1;
+    }
+
+    NOVO_EVENTO(mundo, EV_DESISTE, tempo, heroi, base);
+    return 0;
+}
+
+void avisa(struct Mundo *mundo, int tempo, int base)
+{
+    struct Base *b = &mundo->bases[base];
+    int heroi;
+
+    while (cardinalidade_cjt(b->herois) < b->lotacao &&
+        dequeue(b->espera, &heroi))
+    {
+        insere_cjt(b->herois, heroi);
+        printf("%6d: AVISA  PORTEIRO BASE %d ADMITE %2d\n", tempo, base, heroi);
+        NOVO_EVENTO(mundo, EV_ENTRA, tempo, heroi, base);
+    }
+}
+
+/* outras funcoes */
+
+int loop_de_eventos(struct Mundo *mundo)
+{
+    struct evento_t *e;
+    while ((e = retira_lef(mundo->eventos))) {
+        switch (e->tipo) {
+        case EV_FIM_DO_MUNDO:
+            return 1;
+            break;
+        case EV_CHEGA:
+            printf("%6d: CHEGA  HEROI %2d BASE %d (%2d/%2d) ",
+                   e->tempo,
+                   e->dado1,
+                   e->dado2,
+                   cardinalidade_cjt(mundo->bases[e->dado2].herois),
+                   mundo->bases[e->dado2].lotacao);
+            if (chega(mundo, e->tempo, e->dado1, e->dado2))
+                printf("ESPERA\n");
+            else
+                printf("DESISTE\n");
+
+            break;
+        case EV_ESPERA:
+            printf("%6d: ESPERA HEROI %2d BASE %d (%2d)\n",
+                   e->tempo,
+                   e->dado1,
+                   e->dado2,
+                   fila_tamanho(mundo->bases[e->dado2].espera));
+            enqueue(mundo->bases[e->dado2].espera, e->dado1);
+            NOVO_EVENTO(mundo, EV_AVISA, e->tempo, e->dado2, 0);
+
+            break;
+        case EV_DESISTE:
+            printf("%6d: DESIST HEROI %2d BASE %d (%2d)\n",
+                   e->tempo,
+                   e->dado1,
+                   e->dado2,
+                   fila_tamanho(mundo->bases[e->dado2].espera));
+            NOVO_EVENTO(mundo, EV_VIAJA, e->tempo, e->dado1, ALEAT(0, N_BASES - 1));
+
+            break;
+        case EV_AVISA:
+            printf("%6d: AVISA  PORTEIRO BASE %d (%2d/%2d) FILA ",
+                   e->tempo,
+                   e->dado1,
+                   cardinalidade_cjt(mundo->bases[e->dado1].herois),
+                   mundo->bases[e->dado1].lotacao);
+            fila_imprime(mundo->bases[e->dado1].espera);
+            printf("\n");
+            avisa(mundo, e->tempo, e->dado1);
+
+            break;
+        case EV_ENTRA:
+            printf("%6d: ENTRA  HEROI %2d BASE %d (%2d/%2d) SAI <todo>\n",
+                   e->tempo,
+                   e->dado1,
+                   e->dado2,
+                   cardinalidade_cjt(mundo->bases[e->dado2].herois),
+                   mundo->bases[e->dado2].lotacao);
+            break;
+        case EV_SAI:
+            printf("%6d: SAI    HEROI %2d BASE %d (%2d/%2d)\n",
+                   e->tempo,
+                   e->dado1,
+                   e->dado2,
+                   cardinalidade_cjt(mundo->bases[e->dado1].herois),
+                   mundo->bases[e->dado2].lotacao);
+            break;
+        case EV_VIAJA:
+            printf("%6d: VIAJA  HEROI %2d BASE %2d BASE %2d DIST <todo> VEL %d CHEGA <todo>\n",
+                   e->tempo,
+                   e->dado1,
+                   mundo->herois[e->dado1].base_id,
+                   e->dado2,
+                   mundo->herois[e->dado1].velocidade);
+            break;
+        case EV_MISSAO:
+            printf("%6d: MISSAO %d <todo>\n", e->tempo, e->dado1);
+        }
+    }
+
+    return 0;
+}
+
 int inicializa_herois(struct Heroi herois[])
 {
     int i, j, max_hab_heroi;
@@ -179,84 +303,6 @@ int cria_eventos_iniciais(struct lef_t *eventos)
     insere_lef(eventos, e);
 
     return 1;
-}
-
-/* EV_CHEGA 0
- * EV_ESPERA 1
- * EV_DESISTE 2
- * EV_AVISA 3
- * EV_ENTRA 4
- * EV_SAI 5
- * EV_VIAJA 6
- * EV_MISSAO 7 */
-int loop_de_eventos(struct Mundo *mundo)
-{
-    struct evento_t *e;
-    while ((e = retira_lef(mundo->eventos))) {
-        switch (e->tipo) {
-        case EV_FIM_DO_MUNDO:
-            return 1;
-            break;
-        case EV_CHEGA:
-            printf("%6d: CHEGA  HEROI %2d BASE %d (%d/%d) <todo>\n",
-                   e->tempo,
-                   e->dado1,
-                   e->dado2,
-                   cardinalidade_cjt(mundo->bases[e->dado2].herois),
-                   mundo->bases[e->dado2].lotacao);
-            break;
-        case EV_ESPERA:
-            printf("%6d: ESPERA HEROI %2d BASE %d (%2d)\n",
-                   e->tempo,
-                   e->dado1,
-                   e->dado2,
-                   fila_tamanho(mundo->bases[e->dado2].espera));
-            break;
-        case EV_DESISTE:
-            printf("%6d: DESIST HEROI %2d BASE %d (%2d)\n",
-                   e->tempo,
-                   e->dado1,
-                   e->dado2,
-                   fila_tamanho(mundo->bases[e->dado2].espera));
-            break;
-        case EV_AVISA:
-            printf("%6d: AVISA  PORTEIRO BASE %d (%2d/%2d) FILA ",
-                   e->tempo,
-                   e->dado1,
-                   cardinalidade_cjt(mundo->bases[e->dado1].herois),
-                   mundo->bases[e->dado1].lotacao);
-            fila_imprime(mundo->bases[e->dado1].espera);
-            break;
-        case EV_ENTRA:
-            printf("%6d: ENTRA  HEROI %2d BASE %d (%2d/%2d) SAI <todo>\n",
-                   e->tempo,
-                   e->dado1,
-                   e->dado2,
-                   cardinalidade_cjt(mundo->bases[e->dado2].herois),
-                   mundo->bases[e->dado2].lotacao);
-            break;
-        case EV_SAI:
-            printf("%6d: SAI    HEROI %2d BASE %d (%2d/%2d)\n",
-                   e->tempo,
-                   e->dado1,
-                   e->dado2,
-                   cardinalidade_cjt(mundo->bases[e->dado1].herois),
-                   mundo->bases[e->dado2].lotacao);
-            break;
-        case EV_VIAJA:
-            printf("%6d: VIAJA  HEROI %2d BASE %2d BASE %2d DIST <todo> VEL %d CHEGA <todo>\n",
-                   e->tempo,
-                   e->dado1,
-                   mundo->herois[e->dado1].base_id,
-                   e->dado2,
-                   mundo->herois[e->dado1].velocidade);
-            break;
-        case EV_MISSAO:
-            printf("%6d: MISSAO %d <todo>\n", e->tempo, e->dado1);
-        }
-    }
-
-    return 0;
 }
 
 static struct Mundo mundo;
