@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <math.h>
 #include "conjunto.h"
 #include "fila.h"
 #include "lef.h"
@@ -38,12 +39,19 @@
 #define EV_MISSAO 7
 #define EV_FIM_DO_MUNDO 8
 
-#define ALEAT(a, b) ((rand() % ((b) + 1)) + (a))
+#define ALEAT(a, b) ((rand() % ((b - a) + 1)) + (a))
 
 struct Coordenada {
     int x;
     int y;
 };
+
+int dist_cartesiana(struct Coordenada a, struct Coordenada b)
+{
+    float diff_x = (float) a.x - b.x;
+    float diff_y = (float) a.y - b.y;
+    return (int) sqrt(powf(diff_x, 2) + powf(diff_y, 2));
+}
 
 struct Base {
     int lotacao;
@@ -87,7 +95,7 @@ int chega(struct Mundo *mundo, int tempo, int heroi, int base)
 
     h->base_id = base;
 
-    if ((vazio_cjt(b->herois) && fila_vazia(b->espera)) ||
+    if ((cardinalidade_cjt(b->herois) < b->lotacao && fila_vazia(b->espera)) ||
         (h->paciencia > (10 * fila_tamanho(b->espera))))
     {
         NOVO_EVENTO(mundo, EV_ESPERA, tempo, heroi, base);
@@ -95,6 +103,7 @@ int chega(struct Mundo *mundo, int tempo, int heroi, int base)
     }
 
     NOVO_EVENTO(mundo, EV_DESISTE, tempo, heroi, base);
+
     return 0;
 }
 
@@ -110,6 +119,40 @@ void avisa(struct Mundo *mundo, int tempo, int base)
         printf("%6d: AVISA  PORTEIRO BASE %d ADMITE %2d\n", tempo, base, heroi);
         NOVO_EVENTO(mundo, EV_ENTRA, tempo, heroi, base);
     }
+}
+
+int entra(struct Mundo *mundo, int heroi, int base, int tempo)
+{
+    struct Heroi *h = &mundo->herois[heroi];
+    int t_saida = tempo + 15 + h->paciencia * ALEAT(1, 20);
+    NOVO_EVENTO(mundo, EV_SAI, t_saida, heroi, base);
+
+    return t_saida;
+}
+
+void sai(struct Mundo *mundo, int heroi, int base, int tempo)
+{
+    int dest = ALEAT(0, N_BASES - 1);
+    retira_cjt(mundo->bases[base].herois, heroi);
+    NOVO_EVENTO(mundo, EV_VIAJA, tempo, heroi, dest);
+    NOVO_EVENTO(mundo, EV_AVISA, tempo, base, 0);
+}
+
+void viaja(struct Mundo *mundo, int heroi, int base, int tempo)
+{
+    struct Heroi *h = &mundo->herois[heroi];
+    struct Base *b = &mundo->bases[base];
+    int dist = dist_cartesiana(mundo->bases[h->base_id].local, b->local);
+    int chega = tempo + dist / h->velocidade;
+    printf("%6d: VIAJA  HEROI %2d BASE %2d BASE %2d DIST %d VEL %d CHEGA %d\n",
+           tempo,
+           heroi,
+           h->base_id,
+           base,
+           dist,
+           h->velocidade,
+           chega);
+    NOVO_EVENTO(mundo, EV_CHEGA, chega, heroi, base);
 }
 
 /* outras funcoes */
@@ -166,28 +209,25 @@ int loop_de_eventos(struct Mundo *mundo)
 
             break;
         case EV_ENTRA:
-            printf("%6d: ENTRA  HEROI %2d BASE %d (%2d/%2d) SAI <todo>\n",
+            printf("%6d: ENTRA  HEROI %2d BASE %d (%2d/%2d) SAI %d\n",
                    e->tempo,
                    e->dado1,
                    e->dado2,
                    cardinalidade_cjt(mundo->bases[e->dado2].herois),
-                   mundo->bases[e->dado2].lotacao);
+                   mundo->bases[e->dado2].lotacao,
+                   entra(mundo, e->dado1, e->dado2, e->tempo));
             break;
         case EV_SAI:
             printf("%6d: SAI    HEROI %2d BASE %d (%2d/%2d)\n",
                    e->tempo,
                    e->dado1,
                    e->dado2,
-                   cardinalidade_cjt(mundo->bases[e->dado1].herois),
+                   cardinalidade_cjt(mundo->bases[e->dado2].herois),
                    mundo->bases[e->dado2].lotacao);
+            sai(mundo, e->dado1, e->dado2, e->tempo);
             break;
         case EV_VIAJA:
-            printf("%6d: VIAJA  HEROI %2d BASE %2d BASE %2d DIST <todo> VEL %d CHEGA <todo>\n",
-                   e->tempo,
-                   e->dado1,
-                   mundo->herois[e->dado1].base_id,
-                   e->dado2,
-                   mundo->herois[e->dado1].velocidade);
+            viaja(mundo, e->dado1, e->dado2, e->tempo);
             break;
         case EV_MISSAO:
             printf("%6d: MISSAO %d <todo>\n", e->tempo, e->dado1);
@@ -305,6 +345,21 @@ int cria_eventos_iniciais(struct lef_t *eventos)
     return 1;
 }
 
+void relatorio(struct Mundo *mundo)
+{
+    int i;
+    struct Heroi *h;
+    for (i = 0; i < N_HEROIS; i++) {
+        h = &mundo->herois[i];
+        printf("HEROI %2d PAC %3d VEL %4d EXP %4d HAB ",
+               i,
+               h->paciencia,
+               h->velocidade,
+               h->experiencia);
+        imprime_cjt(h->habilidades);
+    }
+}
+
 static struct Mundo mundo;
 
 int main()
@@ -344,6 +399,8 @@ int main()
         fprintf(stderr, "Eventos acabaram antes do fim do mundo.\n");
         return 1;
     }
+
+    relatorio(&mundo);
 
     destroi_missoes(mundo.missoes, N_MISSOES);
     destroi_herois(mundo.herois, N_HEROIS);
