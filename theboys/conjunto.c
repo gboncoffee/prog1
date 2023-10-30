@@ -122,7 +122,7 @@ int insere_cjt(struct conjunto *c, int elemento)
 /* auxiliar para retira_cjt semelhante a insere_pos */
 void retira_pos(struct conjunto *c, int pos, int fim)
 {
-    if (pos > fim)
+    if (pos >= fim)
         return;
     c->v[pos] = c->v[pos + 1];
     retira_pos(c, pos + 1, fim);
