@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#include <time.h>
 #include "conjunto.h"
 #include "fila.h"
 #include "lef.h"
@@ -166,7 +167,7 @@ struct conjunto *une_habilidades_base(struct Heroi *herois, struct Base *b)
 
     inicia_iterador_cjt(b->herois);
     if (incrementa_iterador_cjt(b->herois, &h) == 0)
-        return NULL;
+        return cria_cjt(1);
     if (incrementa_iterador_cjt(b->herois, &hn) == 0)
         return copia_cjt(herois[h].habilidades);
 
@@ -191,48 +192,66 @@ void completa(struct Mundo *mundo, int missao, int base)
         mundo->herois[i].experiencia++;
 }
 
+/* struct usada so em missao para ordenar as bases pela distancia */
+struct BaseDistancia {
+    int base;
+    int dist;
+};
+
 void missao(struct Mundo *mundo, int missao, int tempo)
 {
-    int possiveis[N_BASES];
-    int n_pos = 0;
-    int i, bmp, dist, n_dist;
+    struct BaseDistancia bases[N_BASES];
+    struct BaseDistancia ult;
+    int i, j;
     struct conjunto *uniao;
     struct Missao *m = &mundo->missoes[missao];
 
-    mundo->missoes[missao].tentativas++;
+    m->tentativas++;
+    printf("%6d: MISSAO %d HAB REQ: ", tempo, missao);
+    imprime_cjt(m->habilidades);
 
-    /* computa quais bases tem as habilidades necessarias */
     for (i = 0; i < N_BASES; i++) {
-        uniao = une_habilidades_base(mundo->herois, &mundo->bases[i]);
+        bases[i] = (struct BaseDistancia) {
+            .base = i,
+            .dist = dist_cartesiana(mundo->bases[i].local, m->local),
+        };
+    }
+
+    /* insertion sort */
+    for (i = 1; i < N_BASES; i++) {
+        ult = bases[i];
+        j = i - 1;
+        while (ult.dist < bases[j].dist && j >= 0) {
+            bases[j + 1] = bases[j];
+            j--;
+        }
+        bases[j + 1] = ult;
+    }
+
+    for (i = 0; i < N_BASES; i++) {
+        uniao = une_habilidades_base(mundo->herois,
+                                     &mundo->bases[bases[i].base]);
         if (uniao != NULL) {
+            printf("%6d: MISSAO %d HAB BASE %d: ",
+                   tempo,
+                   missao,
+                   bases[i].base);
+            imprime_cjt(uniao);
+
             if (contido_cjt(m->habilidades, uniao)) {
-                possiveis[n_pos] = i;
-                n_pos++;
+                printf("%6d: MISSAO %d CUMPRIDA BASE %d HEROIS: ",
+                       tempo,
+                       missao,
+                       bases[i].base);
+                imprime_cjt(mundo->bases[bases[i].base].herois);
+                completa(mundo, missao, bases[i].base);
+                return;
             }
-            destroi_cjt(uniao);
         }
     }
 
-    /* nenhuma tem (missao impossivel) */
-    if (n_pos == 0) {
-        /* adia em um dia (1 tick = 1 minuto) */
-        NOVO_EVENTO(mundo, EV_MISSAO, tempo + 24 * 60, missao, 0);
-
-        return;
-    }
-
-    /* encontra a mais perto */
-    bmp = 0;
-    dist = dist_cartesiana(mundo->bases[possiveis[0]].local, m->local);
-    for (i = 1; i < n_pos; i++) {
-        n_dist = dist_cartesiana(mundo->bases[possiveis[i]].local, m->local);
-        if (n_dist < dist) {
-            dist = n_dist;
-            bmp = i;
-        }
-    }
-
-    completa(mundo, missao, possiveis[bmp]);
+    printf("%6d: MISSAO %d IMPOSSIVEL\n", tempo, missao);
+    NOVO_EVENTO(mundo, EV_MISSAO, tempo + 24 * 60, missao, 0);
 }
 
 /* outras funcoes */
@@ -381,7 +400,7 @@ void destroi_bases(struct Base bases[], int n)
     }
 }
 
-int inicializa_missoes(struct Missao missoes[], int maxx, int maxy)
+int inicializa_missoes(struct Missao *missoes, int maxx, int maxy)
 {
     int i, j, max_hab_missao;
     for (i = 0; i < N_MISSOES; i++) {
