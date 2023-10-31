@@ -257,7 +257,7 @@ void computa_uniao(struct conjunto *c1,
     if (p1 >= c1->card && p2 >= c2->card)
         return;
 
-    if (p1 >= c1->card || (c1->v[p1] > c2->v[p2])) {
+    if (p1 >= c1->card || (p2 < c2->card && c1->v[p1] > c2->v[p2])) {
         cr->v[cr->card] = c2->v[p2];
         p2++;
     } else if (p2 >= c2->card || (c2->v[p2] > c1->v[p1])) {
