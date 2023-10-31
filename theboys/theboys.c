@@ -9,6 +9,7 @@
 /* todas as funcoes que retornam int para indicar falha retornam 1 em sucesso e
  * 0 em falha */
 
+/* configuracao da simulacao */
 #define FIM_DO_MUNDO 525600
 #define N_HABILIDADES 10
 #define N_HEROIS (N_HABILIDADES * 5)
@@ -71,6 +72,8 @@ struct Heroi {
 struct Missao {
     struct conjunto *habilidades;
     struct Coordenada local;
+    int tentativas;
+    short int completa;
 };
 
 struct Mundo {
@@ -155,6 +158,83 @@ void viaja(struct Mundo *mundo, int heroi, int base, int tempo)
     NOVO_EVENTO(mundo, EV_CHEGA, chega, heroi, base);
 }
 
+/* auxiliar para missao */
+struct conjunto *une_habilidades_base(struct Heroi *herois, struct Base *b)
+{
+    int h, hn;
+    struct conjunto *u, *tmp;
+
+    inicia_iterador_cjt(b->herois);
+    if (incrementa_iterador_cjt(b->herois, &h) == 0)
+        return NULL;
+    if (incrementa_iterador_cjt(b->herois, &hn) == 0)
+        return copia_cjt(herois[h].habilidades);
+
+    u = uniao_cjt(herois[h].habilidades, herois[hn].habilidades);
+    while (incrementa_iterador_cjt(b->herois, &h)) {
+        tmp = uniao_cjt(u, herois[h].habilidades);
+        destroi_cjt(u);
+        u = tmp;
+    }
+
+    return u;
+}
+
+/* roda quando a missao pode ser completa */
+void completa(struct Mundo *mundo, int missao, int base)
+{
+    int i;
+    mundo->missoes[missao].completa = 1;
+
+    inicia_iterador_cjt(mundo->bases[base].herois);
+    while (incrementa_iterador_cjt(mundo->bases[base].herois, &i))
+        mundo->herois[i].experiencia++;
+}
+
+void missao(struct Mundo *mundo, int missao, int tempo)
+{
+    int possiveis[N_BASES];
+    int n_pos = 0;
+    int i, bmp, dist, n_dist;
+    struct conjunto *uniao;
+    struct Missao *m = &mundo->missoes[missao];
+
+    mundo->missoes[missao].tentativas++;
+
+    /* computa quais bases tem as habilidades necessarias */
+    for (i = 0; i < N_BASES; i++) {
+        uniao = une_habilidades_base(mundo->herois, &mundo->bases[i]);
+        if (uniao != NULL) {
+            if (contido_cjt(m->habilidades, uniao)) {
+                possiveis[n_pos] = i;
+                n_pos++;
+            }
+            destroi_cjt(uniao);
+        }
+    }
+
+    /* nenhuma tem (missao impossivel) */
+    if (n_pos == 0) {
+        /* adia em um dia (1 tick = 1 minuto) */
+        NOVO_EVENTO(mundo, EV_MISSAO, tempo + 24 * 60, missao, 0);
+
+        return;
+    }
+
+    /* encontra a mais perto */
+    bmp = 0;
+    dist = dist_cartesiana(mundo->bases[possiveis[0]].local, m->local);
+    for (i = 1; i < n_pos; i++) {
+        n_dist = dist_cartesiana(mundo->bases[possiveis[i]].local, m->local);
+        if (n_dist < dist) {
+            dist = n_dist;
+            bmp = i;
+        }
+    }
+
+    completa(mundo, missao, possiveis[bmp]);
+}
+
 /* outras funcoes */
 
 int loop_de_eventos(struct Mundo *mundo)
@@ -163,8 +243,9 @@ int loop_de_eventos(struct Mundo *mundo)
     while ((e = retira_lef(mundo->eventos))) {
         switch (e->tipo) {
         case EV_FIM_DO_MUNDO:
+            printf("%6d: FIM\n", e->tempo);
+            free(e);
             return 1;
-            break;
         case EV_CHEGA:
             printf("%6d: CHEGA  HEROI %2d BASE %d (%2d/%2d) ",
                    e->tempo,
@@ -194,7 +275,11 @@ int loop_de_eventos(struct Mundo *mundo)
                    e->dado1,
                    e->dado2,
                    fila_tamanho(mundo->bases[e->dado2].espera));
-            NOVO_EVENTO(mundo, EV_VIAJA, e->tempo, e->dado1, ALEAT(0, N_BASES - 1));
+            NOVO_EVENTO(mundo,
+                        EV_VIAJA,
+                        e->tempo,
+                        e->dado1,
+                        ALEAT(0, N_BASES - 1));
 
             break;
         case EV_AVISA:
@@ -230,8 +315,11 @@ int loop_de_eventos(struct Mundo *mundo)
             viaja(mundo, e->dado1, e->dado2, e->tempo);
             break;
         case EV_MISSAO:
-            printf("%6d: MISSAO %d <todo>\n", e->tempo, e->dado1);
+            missao(mundo, e->dado1, e->tempo);
+            break;
         }
+
+        free(e);
     }
 
     return 0;
@@ -299,6 +387,8 @@ int inicializa_missoes(struct Missao missoes[], int maxx, int maxy)
     for (i = 0; i < N_MISSOES; i++) {
         missoes[i].local.x = ALEAT(0, maxx);
         missoes[i].local.y = ALEAT(0, maxy);
+        missoes[i].completa = 0;
+        missoes[i].tentativas = 0;
         max_hab_missao = ALEAT(1, N_HABILIDADES);
         if (!(missoes[i].habilidades = cria_cjt(max_hab_missao)))
             return 0;
@@ -349,6 +439,9 @@ void relatorio(struct Mundo *mundo)
 {
     int i;
     struct Heroi *h;
+    struct Missao *m;
+    int completas = 0;
+    int tentativas = 0;
     for (i = 0; i < N_HEROIS; i++) {
         h = &mundo->herois[i];
         printf("HEROI %2d PAC %3d VEL %4d EXP %4d HAB ",
@@ -358,6 +451,18 @@ void relatorio(struct Mundo *mundo)
                h->experiencia);
         imprime_cjt(h->habilidades);
     }
+
+    for (i = 0; i < N_MISSOES; i++) {
+        m = &mundo->missoes[i];
+        completas += m->completa;
+        tentativas += m->tentativas;
+    }
+
+    printf("%d/%d MISSOES CUMPRIDAS (%.2f%%), MEDIA %.2f TENTATIVAS/MISSAO\n",
+           completas,
+           N_MISSOES,
+           (float) completas * 100 / N_MISSOES,
+           (float) tentativas / N_MISSOES);
 }
 
 static struct Mundo mundo;
