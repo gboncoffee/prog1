@@ -249,8 +249,11 @@ void missao(struct Mundo *mundo, int missao, int tempo)
                        bases[i].base);
                 imprime_cjt(mundo->bases[bases[i].base].herois);
                 completa(mundo, missao, bases[i].base);
+                destroi_cjt(uniao);
                 return;
             }
+
+            destroi_cjt(uniao);
         }
     }
 
