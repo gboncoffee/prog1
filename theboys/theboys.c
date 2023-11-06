@@ -22,6 +22,10 @@
 #define MAX_VELOCIDADE 5000
 #define MIN_LOTACAO 3
 #define MAX_LOTACAO 10
+#define MIN_HAB_HEROI 1
+#define MAX_HAB_HEROI 3
+#define MIN_HAB_MISSAO 6
+#define MAX_HAB_MISSAO
 #define MAX_TEMPO_CHEGADA 4320
 
 /* usados como valores de inicializacao e etc */
@@ -352,7 +356,7 @@ int inicializa_herois(struct Heroi herois[])
         herois[i].experiencia = 0;
         herois[i].paciencia = ALEAT(MIN_PACIENCIA, MAX_PACIENCIA);
         herois[i].velocidade = ALEAT(MIN_VELOCIDADE, MAX_VELOCIDADE);
-        max_hab_heroi = ALEAT(1, N_HABILIDADES);
+        max_hab_heroi = ALEAT(MIN_HAB_HEROI, MAX_HAB_HEROI);
         if (!(herois[i].habilidades = cria_cjt(max_hab_heroi)))
             return 0;
         for (j = 0; j < max_hab_heroi; j++)
@@ -408,7 +412,7 @@ int inicializa_missoes(struct Missao *missoes, int maxx, int maxy)
         missoes[i].local.y = ALEAT(0, maxy);
         missoes[i].completa = 0;
         missoes[i].tentativas = 0;
-        max_hab_missao = ALEAT(1, N_HABILIDADES);
+        max_hab_missao = ALEAT(MIN_HAB_MISSAO, MAX_HAB_MISSAO);
         if (!(missoes[i].habilidades = cria_cjt(max_hab_missao)))
             return 0;
         for (j = 0; j < max_hab_missao; j++)
